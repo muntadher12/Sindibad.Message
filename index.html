@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Management System</title>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, push, set, update, remove, onValue, off } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Get Firebase configuration from environment variables
+        const firebaseConfig = {
+            apiKey: window.ENV?.VITE_FIREBASE_API_KEY || document.querySelector('meta[name="vite-firebase-api-key"]')?.content,
+            authDomain: `${window.ENV?.VITE_FIREBASE_PROJECT_ID || document.querySelector('meta[name="vite-firebase-project-id"]')?.content}.firebaseapp.com`,
+            databaseURL: `https://${window.ENV?.VITE_FIREBASE_PROJECT_ID || document.querySelector('meta[name="vite-firebase-project-id"]')?.content}-default-rtdb.firebaseio.com/`,
+            projectId: window.ENV?.VITE_FIREBASE_PROJECT_ID || document.querySelector('meta[name="vite-firebase-project-id"]')?.content,
+            storageBucket: `${window.ENV?.VITE_FIREBASE_PROJECT_ID || document.querySelector('meta[name="vite-firebase-project-id"]')?.content}.firebasestorage.app`,
+            messagingSenderId: "123456789012",
+            appId: window.ENV?.VITE_FIREBASE_APP_ID || document.querySelector('meta[name="vite-firebase-app-id"]')?.content
+        };
+
+        console.log('Firebase Config Check:', {
+            configAvailable: !!firebaseConfig.apiKey,
+            apiKey: firebaseConfig?.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...` : 'Missing',
+            projectId: firebaseConfig?.projectId || 'Missing',
+            appId: firebaseConfig?.appId ? `${firebaseConfig.appId.substring(0, 10)}...` : 'Missing',
+            databaseURL: firebaseConfig?.databaseURL || 'Missing'
+        });
+
+        if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.appId) {
+            console.error('Firebase configuration incomplete - check environment variables');
+            window.firebaseApp = null;
+        } else {
+            try {
+                console.log('Initializing Firebase with project:', firebaseConfig.projectId);
+                console.log('Database URL:', firebaseConfig.databaseURL);
+
+                // Initialize Firebase
+                const app = initializeApp(firebaseConfig);
+                const database = getDatabase(app);
+                const auth = getAuth(app);
+
+                // Make Firebase available globally
+                window.firebaseApp = { app, database, auth, ref, push, set, update, remove, onValue, off, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+                
+                console.log('✅ Firebase initialized successfully!');
+                console.log('Database reference:', database);
+            } catch (error) {
+                console.error('❌ Firebase initialization error:', error);
+                window.firebaseApp = null;
+            }
+        }
+    </script>
+
+    <!-- Add environment variables as meta tags for Firebase config -->
+    <script>
+        // Inject environment variables into meta tags for Firebase config
+        if (typeof window !== 'undefined') {
+            const apiKey = window.ENV?.VITE_FIREBASE_API_KEY;
+            const projectId = window.ENV?.VITE_FIREBASE_PROJECT_ID;
+            const appId = window.ENV?.VITE_FIREBASE_APP_ID;
+            
+            if (apiKey) {
+                const metaApiKey = document.createElement('meta');
+                metaApiKey.name = 'vite-firebase-api-key';
+                metaApiKey.content = apiKey;
+                document.head.appendChild(metaApiKey);
+            }
+            
+            if (projectId) {
+                const metaProjectId = document.createElement('meta');
+                metaProjectId.name = 'vite-firebase-project-id';
+                metaProjectId.content = projectId;
+                document.head.appendChild(metaProjectId);
+            }
+            
+            if (appId) {
+                const metaAppId = document.createElement('meta');  
+                metaAppId.name = 'vite-firebase-app-id';
+                metaAppId.content = appId;
+                document.head.appendChild(metaAppId);
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #FAFAFA;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header Styles */
+        .header {
+            background-color: #EC5453;
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo {
+            width: 120px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .brand-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+        }
+
+        .user-email {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Login Form */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #EC5453 0%, #F87171 100%);
+        }
+
+        .login-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-logo {
+            width: 180px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+
+        .login-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            color: #6B7280;
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #EC5453;
+            box-shadow: 0 0 0 3px rgba(236, 84, 83, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            background-color: #EC5453;
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .login-btn:hover {
+            background-color: #DC2626;
+        }
+
+        .login-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #DC2626;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem 0;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 600;
+            color: #1F2937;
+        }
+
+        .add-btn {
+            background-color: #EC5453;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s;
+        }
+
+        .add-btn:hover {
+            background-color: #DC2626;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .filter-select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.375rem;
+            background: white;
+            color: #374151;
+            font-size: 0.875rem;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #EC5453;
+            box-shadow: 0 0 0 3px rgba(236, 84, 83, 0.1);
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #EC5453;
+            box-shadow: 0 0 0 3px rgba(236, 84, 83, 0.1);
+        }
+
+        /* Messages Grid */
+        .messages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .message-card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            transition: all 0.2s;
+            border: 1px solid #E5E7EB;
+        }
+
+        .message-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .message-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1F2937;
+            margin: 0;
+            flex: 1;
+            margin-right: 1rem;
+        }
+
+        .message-date {
+            color: #6B7280;
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+
+        .message-content {
+            color: #374151;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            white-space: pre-wrap;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .message-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .tag {
+            background-color: #EC5453;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .language-tabs {
+            display: flex;
+            border-bottom: 1px solid #E5E7EB;
+            margin-bottom: 1rem;
+        }
+
+        .language-tab {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #6B7280;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .language-tab.active {
+            color: #EC5453;
+            border-bottom-color: #EC5453;
+        }
+
+        .language-content {
+            display: none;
+        }
+
+        .language-content.active {
+            display: block;
+        }
+
+        .copy-language-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+        }
+
+        /* Action Buttons */
+        .btn {
+            padding: 0.5rem 0.75rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .btn-copy {
+            background-color: #3B82F6;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background-color: #2563EB;
+        }
+
+        .btn-edit {
+            background-color: #F59E0B;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background-color: #D97706;
+        }
+
+        .btn-delete {
+            background-color: #EF4444;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #DC2626;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1F2937;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6B7280;
+        }
+
+        .close-btn:hover {
+            color: #374151;
+        }
+
+        .form-group-horizontal {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-group-horizontal .form-group {
+            flex: 1;
+        }
+
+        .language-forms {
+            margin-top: 1rem;
+        }
+
+        .language-form {
+            display: none;
+            padding: 1rem;
+            border: 1px solid #E5E7EB;
+            border-radius: 0.375rem;
+            margin-top: 0.5rem;
+        }
+
+        .language-form.active {
+            display: block;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: #EC5453;
+            box-shadow: 0 0 0 3px rgba(236, 84, 83, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn-secondary {
+            background-color: #6B7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4B5563;
+        }
+
+        .btn-primary {
+            background-color: #EC5453;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #DC2626;
+        }
+
+        /* Tags Input Styles */
+        .tags-container {
+            border: 1px solid #D1D5DB;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            min-height: 2rem;
+            padding: 0.5rem;
+            border: 1px dashed #D1D5DB;
+            border-radius: 0.375rem;
+            background-color: #F9FAFB;
+        }
+
+        .selected-tags:empty::before {
+            content: "Selected tags will appear here...";
+            color: #9CA3AF;
+            font-style: italic;
+            font-size: 0.875rem;
+        }
+
+        .selected-tag {
+            background: linear-gradient(135deg, #EC5453, #F87171);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 2px 4px rgba(236, 84, 83, 0.2);
+            transition: all 0.2s;
+            animation: tagFadeIn 0.3s ease-out;
+        }
+
+        .selected-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(236, 84, 83, 0.3);
+        }
+
+        @keyframes tagFadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .remove-tag {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.25rem;
+            border-radius: 50%;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .remove-tag:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .tag-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .tag-selection-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: stretch;
+        }
+
+        .tags-select-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .tags-select-wrapper::after {
+            content: '▼';
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6B7280;
+            pointer-events: none;
+            font-size: 0.75rem;
+        }
+
+        #tagsSelect {
+            width: 100%;
+            appearance: none;
+            background: white;
+            border: 2px solid #E5E7EB;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            color: #374151;
+            transition: all 0.2s;
+        }
+
+        #tagsSelect:focus {
+            outline: none;
+            border-color: #EC5453;
+            box-shadow: 0 0 0 3px rgba(236, 84, 83, 0.1);
+        }
+
+        .add-tag-container {
+            display: flex;
+            gap: 0.75rem;
+            align-items: stretch;
+        }
+
+        #newTagInput {
+            flex: 1;
+            border: 2px solid #E5E7EB;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        #newTagInput:focus {
+            outline: none;
+            border-color: #EC5453;
+            box-shadow: 0 0 0 3px rgba(236, 84, 83, 0.1);
+        }
+
+        #addTagBtn {
+            background: linear-gradient(135deg, #EC5453, #F87171);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(236, 84, 83, 0.2);
+        }
+
+        #addTagBtn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(236, 84, 83, 0.3);
+        }
+
+        #addTagBtn:active {
+            transform: translateY(0);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6B7280;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 1.125rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background-color: #065F46;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s;
+            z-index: 1001;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background-color: #DC2626;
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .content-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .messages-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .modal-content {
+                margin: 1rem;
+                max-width: calc(100% - 2rem);
+            }
+
+            .message-actions {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                margin: 1rem;
+            }
+
+            .messages-grid {
+                gap: 0.75rem;
+            }
+
+            .message-card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <img src="sindibad-logo.png" alt="Sindibad Logo">
+                </div>
+                <h1 class="login-title">Message Management</h1>
+                <p class="login-subtitle">Sign in to access your account</p>
+            </div>
+
+            <form id="loginForm" class="modal-form">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" id="email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" class="form-input" required>
+                </div>
+                <button type="submit" class="login-btn">Sign In</button>
+                <div id="loginError" class="error-message hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="logo-section">
+                        <div class="logo">
+                            <img src="sindibad-logo.png" alt="Sindibad Logo">
+                        </div>
+                        <span class="brand-text">Sindibad Message Management</span>
+                    </div>
+                    <div class="user-section">
+                        <div class="user-info">
+                            <span id="userEmail" class="user-email"></span>
+                            <span id="userRole" class="user-role"></span>
+                        </div>
+                        <button id="logoutBtn" class="logout-btn">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <div class="content-header">
+                    <h1 class="page-title">Message Templates</h1>
+                    <button id="addMessageBtn" class="add-btn hidden">
+                        <span>+</span>Add New Message
+                    </button>
+                </div>
+
+                <div class="filter-section">
+                    <span class="filter-label">Filter by Tag:</span>
+                    <select id="tagFilter" class="filter-select">
+                        <option value="all">All Messages</option>
+                    </select>
+                </div>
+
+                <div id="messagesContainer" class="messages-grid">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div class="empty-state-title">No messages found</div>
+                        <div>Create your first message template to get started</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle" class="modal-title">Add New Message</h2>
+                <button id="closeModal" class="close-btn">&times;</button>
+            </div>
+            <form id="messageForm" class="modal-form">
+                <div class="form-group">
+                    <label class="form-label" for="messageTitle">Title</label>
+                    <input type="text" id="messageTitle" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="messageTags">Tags</label>
+                    <div class="tags-container">
+                        <div class="selected-tags" id="selectedTags"></div>
+                        <div class="tag-input-container">
+                            <div class="tag-selection-row">
+                                <div class="tags-select-wrapper">
+                                    <select id="tagsSelect">
+                                        <option value="">Choose from existing tags...</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('tagsSelect').dispatchEvent(new Event('change'))">Select</button>
+                            </div>
+                            <div class="add-tag-container">
+                                <input type="text" id="newTagInput" placeholder="Create a new tag..." maxlength="20">
+                                <button type="button" id="addTagBtn">+ Add New</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="messageContentAr">Arabic Content *</label>
+                    <textarea id="messageContentAr" class="form-textarea" required placeholder="أدخل الرسالة باللغة العربية" dir="rtl"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="messageContentEn">English Content (Optional)</label>
+                    <textarea id="messageContentEn" class="form-textarea" placeholder="Enter message in English"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" id="saveBtn" class="btn btn-primary">Save Message</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // Environment variables setup
+        window.ENV = {
+            VITE_FIREBASE_API_KEY: '${VITE_FIREBASE_API_KEY}',
+            VITE_FIREBASE_PROJECT_ID: '${VITE_FIREBASE_PROJECT_ID}',
+            VITE_FIREBASE_APP_ID: '${VITE_FIREBASE_APP_ID}'
+        };
+
+        // Application State
+        let currentUser = null;
+        let messages = [
+            {
+                id: 1,
+                title: "Welcome Message",
+                contentEn: "Welcome to our message management system! We're excited to have you on board. This platform will help you manage and organize all your important communications efficiently.",
+                contentAr: "مرحباً بكم في نظام إدارة الرسائل! نحن متحمسون لانضمامكم إلينا. ستساعدكم هذه المنصة في إدارة وتنظيم جميع اتصالاتكم المهمة بكفاءة.",
+                tags: ["welcome", "introduction"],
+                createdAt: new Date('2024-01-15')
+            },
+            {
+                id: 2,
+                title: "Payment Confirmation",
+                contentEn: "Thank you for your payment. Your transaction has been processed successfully. Transaction ID: [TRANSACTION_ID]. Amount: [AMOUNT]. If you have any questions about this payment, please contact our support team.",
+                contentAr: "شكراً لكم على الدفع. تم معالجة معاملتكم بنجاح. رقم المعاملة: [TRANSACTION_ID]. المبلغ: [AMOUNT]. إذا كانت لديكم أي أسئلة حول هذه الدفعة، يرجى الاتصال بفريق الدعم لدينا.",
+                tags: ["payment", "confirmation"],
+                createdAt: new Date('2024-01-20')
+            },
+            {
+                id: 3,
+                title: "Appointment Reminder",
+                contentEn: "This is a friendly reminder about your upcoming appointment scheduled for [DATE] at [TIME]. Please arrive 15 minutes early and bring any required documents. If you need to reschedule, please contact us at least 24 hours in advance.",
+                contentAr: "هذا تذكير ودود بموعدكم القادم المحدد في [DATE] في تمام الساعة [TIME]. يرجى الوصول قبل 15 دقيقة وإحضار أي مستندات مطلوبة. إذا كنتم بحاجة إلى إعادة الجدولة، يرجى الاتصال بنا قبل 24 ساعة على الأقل.",
+                tags: ["appointment", "reminder"],
+                createdAt: new Date('2024-02-01')
+            },
+            {
+                id: 4,
+                title: "Order Update",
+                contentEn: "Your order #[ORDER_NUMBER] has been shipped and is on its way! Tracking number: [TRACKING_NUMBER]. Expected delivery: [DELIVERY_DATE]. You can track your package using the provided tracking number on our website.",
+                contentAr: "تم شحن طلبكم رقم [ORDER_NUMBER] وهو في الطريق إليكم! رقم التتبع: [TRACKING_NUMBER]. التسليم المتوقع: [DELIVERY_DATE]. يمكنكم تتبع طردكم باستخدام رقم التتبع المقدم على موقعنا الإلكتروني.",
+                tags: ["order", "shipping"],
+                createdAt: new Date('2024-02-10')
+            },
+            {
+                id: 5,
+                title: "System Maintenance",
+                contentEn: "We will be performing scheduled maintenance on [DATE] from [START_TIME] to [END_TIME]. During this time, our services may be temporarily unavailable. We apologize for any inconvenience and appreciate your patience.",
+                contentAr: "سنقوم بإجراء صيانة مجدولة في [DATE] من [START_TIME] إلى [END_TIME]. خلال هذا الوقت، قد تكون خدماتنا غير متاحة مؤقتاً. نعتذر عن أي إزعاج ونقدر صبركم.",
+                tags: ["maintenance", "system"],
+                createdAt: new Date('2024-02-15')
+            }
+        ];
+        let nextMessageId = 6;
+        let editingMessageId = null;
+
+        // User credentials
+        const users = {
+            'op@sindibad.iq': { password: '11223344', role: 'admin', email: 'op@sindibad.iq' },
+            'OP@sindibad.iq': { password: '11223344', role: 'admin', email: 'OP@sindibad.iq' },
+            'cp@sindibad.iq': { password: '77881122', role: 'user', email: 'cp@sindibad.iq' },
+            'CP@sindibad.iq': { password: '77881122', role: 'user', email: 'CP@sindibad.iq' }
+        };
+
+        // DOM Elements
+        const loginPage = document.getElementById('loginPage');
+        const mainApp = document.getElementById('mainApp');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const userEmail = document.getElementById('userEmail');
+        const userRole = document.getElementById('userRole');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const addMessageBtn = document.getElementById('addMessageBtn');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageModal = document.getElementById('messageModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const messageForm = document.getElementById('messageForm');
+        const closeModal = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const toast = document.getElementById('toast');
+        const tagFilter = document.getElementById('tagFilter');
+
+        const tagsSelect = document.getElementById('tagsSelect');
+        const newTagInput = document.getElementById('newTagInput');
+        const addTagBtn = document.getElementById('addTagBtn');
+        const selectedTagsContainer = document.getElementById('selectedTags');
+
+        // Tags functionality
+        let availableTags = ['welcome', 'payment', 'appointment', 'order', 'maintenance', 'notification', 'reminder', 'confirmation', 'shipping', 'system', 'introduction'];
+        let selectedTags = [];
+
+        // Initialize Application
+        function init() {
+            // Initialize Firebase authentication
+            if (window.firebaseApp) {
+                const { auth, onAuthStateChanged } = window.firebaseApp;
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        // User is authenticated
+                        currentUser = {
+                            email: user.email,
+                            role: user.email.toLowerCase() === 'op@sindibad.iq' ? 'admin' : 'user'
+                        };
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        showMainApp();
+                        loadMessagesFromFirebase();
+                    } else {
+                        // Check if user was logged in traditionally
+                        const savedUser = localStorage.getItem('currentUser');
+                        if (savedUser) {
+                            const user = JSON.parse(savedUser);
+                            // Try to authenticate with Firebase if it's an admin
+                            if (user.email.toLowerCase() === 'op@sindibad.iq') {
+                                // Admin should be authenticated with Firebase
+                                showLoginPage();
+                            } else {
+                                currentUser = user;
+                                showMainApp();
+                                loadMessagesFromFirebase();
+                            }
+                        } else {
+                            showLoginPage();
+                        }
+                    }
+                });
+            } else {
+                // Fallback to localStorage if Firebase is not available
+                const savedUser = localStorage.getItem('currentUser');
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                    showMainApp();
+                    loadMessagesFromLocalStorage();
+                } else {
+                    showLoginPage();
+                }
+            }
+
+            // Event Listeners
+            loginForm.addEventListener('submit', handleLogin);
+            logoutBtn.addEventListener('click', handleLogout);
+            addMessageBtn.addEventListener('click', () => openMessageModal());
+            messageForm.addEventListener('submit', handleSaveMessage);
+            closeModal.addEventListener('click', closeMessageModal);
+            cancelBtn.addEventListener('click', closeMessageModal);
+            tagFilter.addEventListener('change', filterMessages);
+            
+            // Tags functionality
+            tagsSelect.addEventListener('change', handleTagSelection);
+            addTagBtn.addEventListener('click', handleAddNewTag);
+            newTagInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddNewTag();
+                }
+            });
+
+            // Close modal when clicking outside
+            messageModal.addEventListener('click', (e) => {
+                if (e.target === messageModal) {
+                    closeMessageModal();
+                }
+            });
+
+            // Load available tags from storage
+            loadAvailableTagsFromStorage();
+            updateTagsDropdown();
+        }
+
+        // Authentication Functions
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Validate user credentials
+            if (users[email] && users[email].password === password) {
+                currentUser = users[email];
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                // Try Firebase authentication for admin users
+                if (window.firebaseApp && email.toLowerCase() === 'op@sindibad.iq') {
+                    const { auth, signInWithEmailAndPassword } = window.firebaseApp;
+                    signInWithEmailAndPassword(auth, email, password)
+                        .then(() => {
+                            showMainApp();
+                            loadMessagesFromFirebase();
+                        })
+                        .catch(() => {
+                            // Fallback to localStorage if Firebase auth fails
+                            showMainApp();
+                            loadMessagesFromFirebase();
+                        });
+                } else {
+                    showMainApp();
+                    loadMessagesFromFirebase();
+                }
+            } else {
+                showError('Invalid email or password');
+            }
+        }
+
+        function handleLogout() {
+            if (window.firebaseApp) {
+                const { auth, signOut } = window.firebaseApp;
+                signOut(auth);
+            }
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            showLoginPage();
+        }
+
+        function showLoginPage() {
+            loginPage.classList.remove('hidden');
+            mainApp.classList.add('hidden');
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+            loginError.classList.add('hidden');
+        }
+
+        function showMainApp() {
+            loginPage.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            userEmail.textContent = currentUser.email;
+            userRole.textContent = currentUser.role;
+            
+            // Show add button only for admin users
+            if (currentUser.role === 'admin') {
+                addMessageBtn.classList.remove('hidden');
+            } else {
+                addMessageBtn.classList.add('hidden');
+            }
+            
+            renderMessages();
+            updateTagFilter();
+        }
+
+        function showError(message) {
+            loginError.textContent = message;
+            loginError.classList.remove('hidden');
+        }
+
+        // Firebase Functions
+        function loadMessagesFromFirebase() {
+            if (!window.firebaseApp) {
+                loadMessagesFromLocalStorage();
+                return;
+            }
+
+            const { database, ref, onValue } = window.firebaseApp;
+            const messagesRef = ref(database, 'messages');
+            
+            onValue(messagesRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    messages = Object.keys(data).map(key => ({
+                        id: key,
+                        ...data[key],
+                        createdAt: new Date(data[key].createdAt)
+                    }));
+                    nextMessageId = Math.max(...messages.map(m => parseInt(m.id) || 0)) + 1;
+                } else {
+                    // If no data in Firebase, use default messages
+                    saveAllMessagesToFirebase();
+                }
+                renderMessages();
+                updateTagFilter();
+            }, (error) => {
+                console.error('Error loading messages from Firebase:', error);
+                loadMessagesFromLocalStorage();
+            });
+        }
+
+        function saveAllMessagesToFirebase() {
+            if (!window.firebaseApp) return;
+
+            const { database, ref, set } = window.firebaseApp;
+            const messagesRef = ref(database, 'messages');
+            
+            const messagesData = {};
+            messages.forEach(message => {
+                messagesData[message.id] = {
+                    ...message,
+                    createdAt: message.createdAt.toISOString()
+                };
+            });
+            
+            set(messagesRef, messagesData);
+        }
+
+        function saveMessageToFirebase(message) {
+            if (!window.firebaseApp) {
+                saveMessageToLocalStorage(message);
+                return;
+            }
+
+            const { database, ref, set } = window.firebaseApp;
+            const messageRef = ref(database, `messages/${message.id}`);
+            
+            set(messageRef, {
+                ...message,
+                createdAt: message.createdAt.toISOString()
+            }).then(() => {
+                showToast('Message saved successfully!');
+            }).catch((error) => {
+                console.error('Error saving message:', error);
+                saveMessageToLocalStorage(message);
+                showToast('Message saved locally!');
+            });
+        }
+
+        function deleteMessageFromFirebase(messageId) {
+            if (!window.firebaseApp) {
+                deleteMessageFromLocalStorage(messageId);
+                return;
+            }
+
+            const { database, ref, remove } = window.firebaseApp;
+            const messageRef = ref(database, `messages/${messageId}`);
+            
+            remove(messageRef).then(() => {
+                showToast('Message deleted successfully!');
+            }).catch((error) => {
+                console.error('Error deleting message:', error);
+                deleteMessageFromLocalStorage(messageId);
+                showToast('Message deleted locally!');
+            });
+        }
+
+        // LocalStorage Functions (Fallback)
+        function loadMessagesFromLocalStorage() {
+            const savedMessages = localStorage.getItem('messages');
+            if (savedMessages) {
+                messages = JSON.parse(savedMessages).map(message => ({
+                    ...message,
+                    createdAt: new Date(message.createdAt)
+                }));
+                nextMessageId = Math.max(...messages.map(m => m.id)) + 1;
+            }
+            renderMessages();
+            updateTagFilter();
+        }
+
+        function saveMessageToLocalStorage(message) {
+            const existingIndex = messages.findIndex(m => m.id === message.id);
+            if (existingIndex !== -1) {
+                messages[existingIndex] = message;
+            } else {
+                messages.push(message);
+            }
+            localStorage.setItem('messages', JSON.stringify(messages));
+            showToast('Message saved successfully!');
+        }
+
+        function deleteMessageFromLocalStorage(messageId) {
+            messages = messages.filter(m => m.id !== messageId);
+            localStorage.setItem('messages', JSON.stringify(messages));
+            showToast('Message deleted successfully!');
+        }
+
+        // Message Management Functions
+        function renderMessages() {
+            const container = messagesContainer;
+            
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div class="empty-state-title">No messages found</div>
+                        <div>Create your first message template to get started</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const filteredMessages = filterMessagesByTag();
+            
+            if (filteredMessages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-title">No messages match the selected filter</div>
+                        <div>Try selecting a different tag or view all messages</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Debug current user state
+            console.log('Rendering messages with currentUser:', currentUser);
+            
+            const isAdmin = currentUser && currentUser.role === 'admin';
+            console.log('Is admin:', isAdmin);
+
+            container.innerHTML = filteredMessages.map(message => {
+                const adminButtons = isAdmin ? `
+                    <button class="btn btn-edit" onclick="editMessage(${message.id})">
+                        ✏️ Edit
+                    </button>
+                    <button class="btn btn-delete" onclick="deleteMessage(${message.id})">
+                        🗑️ Delete
+                    </button>
+                ` : '';
+                
+                return `
+                <div class="message-card">
+                    <div class="message-header">
+                        <h3 class="message-title">${message.title}</h3>
+                        <span class="message-date">${formatDate(message.createdAt)}</span>
+                    </div>
+                    
+                    ${message.tags && message.tags.length > 0 ? `
+                        <div class="message-tags">
+                            ${message.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="language-tabs">
+                        ${message.contentEn ? `<button class="language-tab" onclick="switchLanguage(${message.id}, 'en')">English</button>` : ''}
+                        <button class="language-tab active" onclick="switchLanguage(${message.id}, 'ar')">العربية</button>
+                    </div>
+                    
+                    ${message.contentEn ? `
+                    <div id="content-en-${message.id}" class="language-content">
+                        <div class="message-content">${message.contentEn}</div>
+                    </div>
+                    ` : ''}
+                    
+                    <div id="content-ar-${message.id}" class="language-content active" dir="rtl">
+                        <div class="message-content">${message.contentAr}</div>
+                    </div>
+                    
+                    <div class="message-actions">
+                        <button class="btn btn-copy copy-language-btn" onclick="copyMessage(${message.id}, 'ar')">
+                            📋 Copy Arabic Message
+                        </button>
+                        ${message.contentEn ? `
+                        <button class="btn btn-copy copy-language-btn" onclick="copyMessage(${message.id}, 'en')">
+                            📋 Copy English Message
+                        </button>
+                        ` : ''}
+                        ${adminButtons}
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function filterMessagesByTag() {
+            const selectedTag = tagFilter.value;
+            if (selectedTag === 'all') {
+                return messages;
+            }
+            return messages.filter(message => 
+                message.tags && message.tags.includes(selectedTag)
+            );
+        }
+
+        function filterMessages() {
+            renderMessages();
+        }
+
+        function updateTagFilter() {
+            const allTags = [...new Set(messages.flatMap(message => message.tags || []))];
+            tagFilter.innerHTML = `
+                <option value="all">All Messages</option>
+                ${allTags.map(tag => `<option value="${tag}">${tag}</option>`).join('')}
+            `;
+        }
+
+        function switchLanguage(messageId, language) {
+            const enContent = document.getElementById(`content-en-${messageId}`);
+            const arContent = document.getElementById(`content-ar-${messageId}`);
+            const tabs = document.querySelectorAll(`[onclick*="switchLanguage(${messageId}"]`);
+            
+            if (language === 'en') {
+                enContent.classList.add('active');
+                arContent.classList.remove('active');
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+            } else {
+                enContent.classList.remove('active');
+                arContent.classList.add('active');
+                tabs[0].classList.remove('active');
+                tabs[1].classList.add('active');
+            }
+        }
+
+        function copyMessage(messageId, language) {
+            const message = messages.find(m => m.id === messageId);
+            if (!message) return;
+            
+            const content = language === 'en' ? message.contentEn : message.contentAr;
+            navigator.clipboard.writeText(content).then(() => {
+                showToast(`${language === 'en' ? 'English' : 'Arabic'} content copied!`);
+            }).catch(() => {
+                showToast('Failed to copy content', 'error');
+            });
+        }
+
+        function editMessage(messageId) {
+            const message = messages.find(m => m.id === messageId);
+            if (!message) return;
+            
+            editingMessageId = messageId;
+            openMessageModal(message);
+        }
+
+        function deleteMessage(messageId) {
+            if (!confirm('Are you sure you want to delete this message?')) return;
+            
+            deleteMessageFromFirebase(messageId);
+        }
+
+        // Modal Functions
+        function openMessageModal(message = null) {
+            if (message) {
+                modalTitle.textContent = 'Edit Message';
+                document.getElementById('messageTitle').value = message.title;
+                document.getElementById('messageContentEn').value = message.contentEn;
+                document.getElementById('messageContentAr').value = message.contentAr;
+                selectedTags = [...(message.tags || [])];
+                editingMessageId = message.id;
+            } else {
+                modalTitle.textContent = 'Add New Message';
+                messageForm.reset();
+                selectedTags = [];
+                editingMessageId = null;
+            }
+            
+            updateSelectedTags();
+            messageModal.classList.add('active');
+        }
+
+        function closeMessageModal() {
+            messageModal.classList.remove('active');
+            messageForm.reset();
+            selectedTags = [];
+            editingMessageId = null;
+        }
+
+        function handleSaveMessage(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('messageTitle').value;
+            const contentEn = document.getElementById('messageContentEn').value.trim();
+            const contentAr = document.getElementById('messageContentAr').value.trim();
+            
+            // Validate required Arabic content
+            if (!contentAr) {
+                showToast('Arabic content is required', 'error');
+                return;
+            }
+            
+            const message = {
+                id: editingMessageId || nextMessageId++,
+                title,
+                contentEn: contentEn || '', // Allow empty English content
+                contentAr,
+                tags: [...selectedTags],
+                createdAt: editingMessageId ? messages.find(m => m.id === editingMessageId).createdAt : new Date()
+            };
+            
+            saveMessageToFirebase(message);
+            closeMessageModal();
+        }
+
+        // Tags Functions
+        function updateTagsDropdown() {
+            tagsSelect.innerHTML = '<option value="">Choose from existing tags...</option>';
+            availableTags.forEach(tag => {
+                if (!selectedTags.includes(tag)) {
+                    tagsSelect.innerHTML += `<option value="${tag}">${tag}</option>`;
+                }
+            });
+        }
+
+        function handleTagSelection() {
+            const selectedTag = tagsSelect.value;
+            if (selectedTag && !selectedTags.includes(selectedTag)) {
+                selectedTags.push(selectedTag);
+                updateSelectedTags();
+                updateTagsDropdown();
+                tagsSelect.value = '';
+            }
+        }
+
+        function handleAddNewTag() {
+            const newTag = newTagInput.value.trim().toLowerCase();
+            if (newTag && !selectedTags.includes(newTag)) {
+                // Add to available tags if it's new
+                if (!availableTags.includes(newTag)) {
+                    availableTags.push(newTag);
+                    saveAvailableTagsToStorage();
+                }
+                // Add to selected tags
+                selectedTags.push(newTag);
+                updateSelectedTags();
+                updateTagsDropdown();
+                newTagInput.value = '';
+            }
+        }
+
+        function saveAvailableTagsToStorage() {
+            if (window.firebaseApp) {
+                const { database, ref, set } = window.firebaseApp;
+                const tagsRef = ref(database, 'availableTags');
+                set(tagsRef, availableTags).catch((error) => {
+                    console.error('Error saving tags to Firebase:', error);
+                    localStorage.setItem('availableTags', JSON.stringify(availableTags));
+                });
+            } else {
+                localStorage.setItem('availableTags', JSON.stringify(availableTags));
+            }
+        }
+
+        function loadAvailableTagsFromStorage() {
+            if (window.firebaseApp) {
+                const { database, ref, onValue } = window.firebaseApp;
+                const tagsRef = ref(database, 'availableTags');
+                onValue(tagsRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && Array.isArray(data)) {
+                        availableTags = data;
+                    }
+                    updateTagsDropdown();
+                }, (error) => {
+                    console.error('Error loading tags from Firebase:', error);
+                    loadTagsFromLocalStorage();
+                });
+            } else {
+                loadTagsFromLocalStorage();
+            }
+        }
+
+        function loadTagsFromLocalStorage() {
+            const savedTags = localStorage.getItem('availableTags');
+            if (savedTags) {
+                availableTags = JSON.parse(savedTags);
+            }
+            updateTagsDropdown();
+        }
+
+        function updateSelectedTags() {
+            selectedTagsContainer.innerHTML = selectedTags.map(tag => `
+                <div class="selected-tag">
+                    ${tag}
+                    <button type="button" class="remove-tag" onclick="removeTag('${tag}')">×</button>
+                </div>
+            `).join('');
+        }
+
+        function removeTag(tag) {
+            selectedTags = selectedTags.filter(t => t !== tag);
+            updateSelectedTags();
+            updateTagsDropdown();
+        }
+
+        // Utility Functions
+        function formatDate(date) {
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+
+    <!-- Environment Variables Script -->
+    <script>
+        // Set up environment variables from Replit's environment
+        window.ENV = window.ENV || {};
+        
+        // Try to get environment variables from various sources
+        function getEnvironmentVariable(name) {
+            // Check if running in Replit
+            if (typeof process !== 'undefined' && process.env) {
+                return process.env[name];
+            }
+            
+            // Check global window object
+            if (window[name]) {
+                return window[name];
+            }
+            
+            // Check if set in a global ENV object
+            if (window.ENV && window.ENV[name]) {
+                return window.ENV[name];
+            }
+            
+            return null;
+        }
+        
+        // Set environment variables
+        window.ENV.VITE_FIREBASE_API_KEY = getEnvironmentVariable('VITE_FIREBASE_API_KEY');
+        window.ENV.VITE_FIREBASE_PROJECT_ID = getEnvironmentVariable('VITE_FIREBASE_PROJECT_ID');
+        window.ENV.VITE_FIREBASE_APP_ID = getEnvironmentVariable('VITE_FIREBASE_APP_ID');
+        
+        console.log('Environment variables loaded:', {
+            hasApiKey: !!window.ENV.VITE_FIREBASE_API_KEY,
+            hasProjectId: !!window.ENV.VITE_FIREBASE_PROJECT_ID,
+            hasAppId: !!window.ENV.VITE_FIREBASE_APP_ID
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #FAFAFA;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header Styles */
+        .header {
+            background-color: #EC5453;
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .brand-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+        }
+
+        .user-email {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Login Form */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #EC5453 0%, #F87171 100%);
+        }
+
+        .login-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-logo {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            overflow: hidden;
+            border: 2px solid #EC5453;
+        }
+
+        .login-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            color: #6B7280;
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #EC5453;
+            box-shadow: 0 0 0 3px rgba(236, 84, 83, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            background-color: #EC5453;
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .login-btn:hover {
+            background-color: #DC2626;
+        }
+
+        .login-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #DC2626;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem 0;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 600;
+            color: #1F2937;
+        }
+
+        .add-btn {
+            background-color: #EC5453;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s;
+        }
+
+        .add-btn:hover {
+            background-color: #DC2626;
+        }
+
+        /* Messages Grid */
+        .messages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .message-card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            transition: all 0.2s;
+            border: 1px solid #E5E7EB;
+        }
+
+        .message-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .message-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1F2937;
+            margin: 0;
+            flex: 1;
+            margin-right: 1rem;
+        }
+
+        .message-date {
+            color: #6B7280;
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+
+        .message-content {
+            color: #374151;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            white-space: pre-wrap;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Action Buttons */
+        .btn {
+            padding: 0.5rem 0.75rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .btn-copy {
+            background-color: #3B82F6;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background-color: #2563EB;
+        }
+
+        .btn-edit {
+            background-color: #F59E0B;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background-color: #D97706;
+        }
+
+        .btn-delete {
+            background-color: #EF4444;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #DC2626;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1F2937;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6B7280;
+            padding: 0.25rem;
+        }
+
+        .close-btn:hover {
+            color: #374151;
+        }
+
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: #EC5453;
+            box-shadow: 0 0 0 3px rgba(236, 84, 83, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .btn-secondary {
+            background-color: #F3F4F6;
+            color: #374151;
+            border: 1px solid #D1D5DB;
+        }
+
+        .btn-secondary:hover {
+            background-color: #E5E7EB;
+        }
+
+        .btn-primary {
+            background-color: #EC5453;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #DC2626;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6B7280;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 1.125rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background-color: #065F46;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s;
+            z-index: 1001;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background-color: #DC2626;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .content-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .messages-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .modal-content {
+                margin: 1rem;
+                max-width: calc(100% - 2rem);
+            }
+
+            .message-actions {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                margin: 1rem;
+            }
+
+            .messages-grid {
+                gap: 0.75rem;
+            }
+
+            .message-card {
+                padding: 1rem;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <img src="sindibad-logo.png" alt="Sindibad Logo">
+                </div>
+                <h1 class="login-title">Message Management</h1>
+                <p class="login-subtitle">Sign in to access your account</p>
+            </div>
+            <form id="loginForm" class="modal-form">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" id="email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" class="form-input" required>
+                </div>
+                <button type="submit" class="login-btn">Sign In</button>
+                <div id="loginError" class="error-message hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="logo-section">
+                        <div class="logo">
+                            <img src="sindibad-logo.png" alt="Sindibad Logo">
+                        </div>
+                        <span class="brand-text">Sindibad Message Management</span>
+                    </div>
+                    <div class="user-section">
+                        <div class="user-info">
+                            <span id="userEmail" class="user-email"></span>
+                            <span id="userRole" class="user-role"></span>
+                        </div>
+                        <button id="logoutBtn" class="logout-btn">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <div class="content-header">
+                    <h1 class="page-title">Message Templates</h1>
+                    <button id="addMessageBtn" class="add-btn hidden">
+                        <span>+</span>Add New Message
+                    </button>
+                </div>
+
+                <div id="messagesContainer" class="messages-grid">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div class="empty-state-title">No messages found</div>
+                        <div>Create your first message template to get started</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle" class="modal-title">Add New Message</h2>
+                <button id="closeModal" class="close-btn">&times;</button>
+            </div>
+            <form id="messageForm" class="modal-form">
+                <div class="form-group">
+                    <label class="form-label" for="messageTitle">Title</label>
+                    <input type="text" id="messageTitle" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="messageContent">Content</label>
+                    <textarea id="messageContent" class="form-textarea" required placeholder="Enter your message content here..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" id="saveBtn" class="btn btn-primary">Save Message</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // Application State
+        let currentUser = null;
+        let messages = [
+            {
+                id: 1,
+                title: "Welcome Message",
+                content: "Welcome to our message management system! We're excited to have you on board. This platform will help you manage and organize all your important communications efficiently.",
+                createdAt: new Date('2024-01-15')
+            },
+            {
+                id: 2,
+                title: "Payment Confirmation",
+                content: "Thank you for your payment. Your transaction has been processed successfully. Transaction ID: [TRANSACTION_ID]. Amount: [AMOUNT]. If you have any questions about this payment, please contact our support team.",
+                createdAt: new Date('2024-01-20')
+            },
+            {
+                id: 3,
+                title: "Appointment Reminder",
+                content: "This is a friendly reminder about your upcoming appointment scheduled for [DATE] at [TIME]. Please arrive 15 minutes early and bring any required documents. If you need to reschedule, please contact us at least 24 hours in advance.",
+                createdAt: new Date('2024-02-01')
+            },
+            {
+                id: 4,
+                title: "Order Update",
+                content: "Your order #[ORDER_NUMBER] has been shipped and is on its way! Tracking number: [TRACKING_NUMBER]. Expected delivery: [DELIVERY_DATE]. You can track your package using the provided tracking number on our website.",
+                createdAt: new Date('2024-02-10')
+            },
+            {
+                id: 5,
+                title: "System Maintenance",
+                content: "We will be performing scheduled maintenance on [DATE] from [START_TIME] to [END_TIME]. During this time, our services may be temporarily unavailable. We apologize for any inconvenience and appreciate your patience.",
+                createdAt: new Date('2024-02-15')
+            }
+        ];
+        let nextMessageId = 6;
+        let editingMessageId = null;
+
+        // User credentials
+        const users = {
+            'OP@sindibad.iq': { password: '11223344', role: 'admin', email: 'OP@sindibad.iq' },
+            'CP@sindibad.iq': { password: '77881122', role: 'user', email: 'CP@sindibad.iq' }
+        };
+
+        // DOM Elements
+        const loginPage = document.getElementById('loginPage');
+        const mainApp = document.getElementById('mainApp');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const userEmail = document.getElementById('userEmail');
+        const userRole = document.getElementById('userRole');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const addMessageBtn = document.getElementById('addMessageBtn');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageModal = document.getElementById('messageModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const messageForm = document.getElementById('messageForm');
+        const closeModal = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const toast = document.getElementById('toast');
+
+        // Initialize Application
+        function init() {
+            // Check if user is already logged in
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showMainApp();
+            } else {
+                showLoginPage();
+            }
+
+            // Event Listeners
+            loginForm.addEventListener('submit', handleLogin);
+            logoutBtn.addEventListener('click', handleLogout);
+            addMessageBtn.addEventListener('click', () => openMessageModal());
+            messageForm.addEventListener('submit', handleSaveMessage);
+            closeModal.addEventListener('click', closeMessageModal);
+            cancelBtn.addEventListener('click', closeMessageModal);
+
+            // Close modal when clicking outside
+            messageModal.addEventListener('click', (e) => {
+                if (e.target === messageModal) {
+                    closeMessageModal();
+                }
+            });
+
+            // Escape key to close modal
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && messageModal.classList.contains('active')) {
+                    closeMessageModal();
+                }
+            });
+        }
+
+        // Authentication Functions
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (users[email] && users[email].password === password) {
+                currentUser = users[email];
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showMainApp();
+                showToast('Login successful!', 'success');
+            } else {
+                showError('Invalid email or password');
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            showLoginPage();
+            showToast('Logged out successfully', 'success');
+        }
+
+        function showLoginPage() {
+            loginPage.classList.remove('hidden');
+            mainApp.classList.add('hidden');
+            // Clear form
+            loginForm.reset();
+            hideError();
+        }
+
+        function showMainApp() {
+            loginPage.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+
+            // Update user info
+            userEmail.textContent = currentUser.email;
+            userRole.textContent = currentUser.role;
+
+            // Show/hide admin features
+            if (currentUser.role === 'admin') {
+                addMessageBtn.classList.remove('hidden');
+            } else {
+                addMessageBtn.classList.add('hidden');
+            }
+
+            renderMessages();
+        }
+
+        // Message Management Functions
+        function renderMessages() {
+            if (messages.length === 0) {
+                messagesContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div class="empty-state-title">No messages found</div>
+                        <div>Create your first message template to get started</div>
+                    </div>
+                `;
+                return;
+            }
+
+            messagesContainer.innerHTML = messages.map(message => `
+                <div class="message-card">
+                    <div class="message-header">
+                        <h3 class="message-title">${escapeHtml(message.title)}</h3>
+                        <span class="message-date">${formatDate(message.createdAt)}</span>
+                    </div>
+                    <div class="message-content">${escapeHtml(message.content)}</div>
+                    <div class="message-actions">
+                        <button class="btn btn-copy" onclick="copyMessage(${message.id})">
+                            📋 Copy
+                        </button>
+                        ${currentUser.role === 'admin' ? `
+                            <button class="btn btn-edit" onclick="editMessage(${message.id})">
+                                ✏️ Edit
+                            </button>
+                            <button class="btn btn-delete" onclick="deleteMessage(${message.id})">
+                                🗑️ Delete
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openMessageModal(messageId = null) {
+            editingMessageId = messageId;
+
+            if (messageId) {
+                const message = messages.find(m => m.id === messageId);
+                modalTitle.textContent = 'Edit Message';
+                document.getElementById('messageTitle').value = message.title;
+                document.getElementById('messageContent').value = message.content;
+            } else {
+                modalTitle.textContent = 'Add New Message';
+                messageForm.reset();
+            }
+
+            messageModal.classList.add('active');
+        }
+
+        function closeMessageModal() {
+            messageModal.classList.remove('active');
+            editingMessageId = null;
+            messageForm.reset();
+        }
+
+        function handleSaveMessage(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('messageTitle').value.trim();
+            const content = document.getElementById('messageContent').value.trim();
+
+            if (!title || !content) {
+                showToast('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (editingMessageId) {
+                // Update existing message
+                const messageIndex = messages.findIndex(m => m.id === editingMessageId);
+                if (messageIndex !== -1) {
+                    messages[messageIndex] = {
+                        ...messages[messageIndex],
+                        title,
+                        content
+                    };
+                    showToast('Message updated successfully!', 'success');
+                }
+            } else {
+                // Create new message
+                const newMessage = {
+                    id: nextMessageId++,
+                    title,
+                    content,
+                    createdAt: new Date()
+                };
+                messages.push(newMessage);
+                showToast('Message created successfully!', 'success');
+            }
+
+            renderMessages();
+            closeMessageModal();
+        }
+
+        function editMessage(id) {
+            if (currentUser.role !== 'admin') {
+                showToast('Access denied', 'error');
+                return;
+            }
+            openMessageModal(id);
+        }
+
+        function deleteMessage(id) {
+            if (currentUser.role !== 'admin') {
+                showToast('Access denied', 'error');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+                messages = messages.filter(m => m.id !== id);
+                renderMessages();
+                showToast('Message deleted successfully!', 'success');
+            }
+        }
+
+        function copyMessage(id) {
+            const message = messages.find(m => m.id === id);
+            if (!message) return;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(message.content).then(() => {
+                    showToast('Message copied to clipboard!', 'success');
+                }).catch(() => {
+                    fallbackCopyToClipboard(message.content);
+                });
+            } else {
+                fallbackCopyToClipboard(message.content);
+            }
+        }
+
+        function fallbackCopyToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast('Message copied to clipboard!', 'success');
+            } catch (err) {
+                showToast('Failed to copy message', 'error');
+            }
+
+            document.body.removeChild(textArea);
+        }
+
+        // Utility Functions
+        function showError(message) {
+            loginError.textContent = message;
+            loginError.classList.remove('hidden');
+        }
+
+        function hideError() {
+            loginError.classList.add('hidden');
+        }
+
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>

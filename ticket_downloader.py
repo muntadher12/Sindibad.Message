@@ -33,6 +33,7 @@ HEADERS = """  -H 'ab-channel: backoffice' \
   -H 'sec-fetch-dest: empty' \
   -H 'sec-fetch-mode: cors' \
   -H 'sec-fetch-site: same-site' \
+  -H 'sindibad: 4989ebec-bb77-4ceb-bb8e-bca98383586d' \
   -H 'timezone: Asia/Baghdad' \
   -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'"""
 
@@ -54,6 +55,7 @@ ORDER_HEADERS = """  -H 'ab-channel: backoffice' \
   -H 'sec-fetch-dest: empty' \
   -H 'sec-fetch-mode: cors' \
   -H 'sec-fetch-site: same-site' \
+  -H 'sindibad: 4989ebec-bb77-4ceb-bb8e-bca98383586d' \
   -H 'timezone: Asia/Baghdad' \
   -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'"""
 
